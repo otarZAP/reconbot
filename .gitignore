@@ -1,0 +1,23 @@
+# --- CAD working source (kept local, not published) ---
+# Print-ready STL/STEP files ARE published; only the editable sources are ignored.
+*.FCStd
+*.FCStd1
+*.FCBak
+*.scad
+*.bak
+
+# --- Arduino / ESP32 build artifacts ---
+build/
+*.bin
+*.elf
+*.map
+*.hex
+
+# --- OS / editor junk ---
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.vscode/
+.idea/

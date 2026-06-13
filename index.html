@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReconBot — Build Console</title>
+<style>
+  :root{
+    --bg:#05080a; --panel:#0b1216; --panel2:#0e171c; --line:#16323a;
+    --grn:#39ff14; --grn-dim:#1f8b10; --grn-soft:#7dffb0;
+    --txt:#cfe9d8; --mut:#7fa493; --amber:#ffb000; --red:#ff5a5a;
+    --mono:"Courier New",ui-monospace,monospace;
+    --sans:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);line-height:1.6}
+  /* scanline overlay */
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:999;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,0) 0 3px,rgba(0,0,0,.08) 3px 4px);
+    mix-blend-mode:multiply}
+  a{color:var(--grn-soft);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{font-family:var(--mono);background:#0a1a14;color:var(--grn-soft);
+    padding:1px 6px;border-radius:4px;border:1px solid #133024;font-size:.9em}
+  h1,h2,h3{font-family:var(--mono);letter-spacing:1px;color:#eafff0}
+  .layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+
+  /* sidebar */
+  nav.side{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;
+    background:linear-gradient(180deg,#091317,#070d10);border-right:1px solid var(--line);padding:18px 0}
+  .brand{font-family:var(--mono);font-weight:bold;font-size:18px;color:var(--grn);
+    padding:0 18px 14px;display:flex;align-items:center;gap:8px;text-shadow:0 0 10px var(--grn-dim)}
+  .brand small{color:var(--mut);font-weight:normal;font-size:11px;letter-spacing:2px}
+  nav.side a{display:block;color:var(--mut);padding:9px 18px;font-family:var(--mono);
+    font-size:13px;border-left:3px solid transparent}
+  nav.side a:hover{color:var(--grn-soft);background:#0c1a16;text-decoration:none}
+  nav.side a.active{color:var(--grn);border-left-color:var(--grn);background:#0c1a16}
+  .progwrap{padding:14px 18px;border-top:1px solid var(--line);margin-top:8px}
+  .progwrap .lbl{font-family:var(--mono);font-size:11px;color:var(--mut);display:flex;justify-content:space-between}
+  .bar{height:8px;background:#0a1a14;border:1px solid #133024;border-radius:6px;overflow:hidden;margin-top:6px}
+  .bar > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--grn-dim),var(--grn));
+    box-shadow:0 0 10px var(--grn);transition:width .4s}
+  .reset{margin-top:10px;background:#1a0d0d;color:var(--red);border:1px solid #3a1414;
+    font-family:var(--mono);font-size:11px;padding:5px 8px;border-radius:5px;cursor:pointer;width:100%}
+  .reset:hover{background:#2a1010}
+
+  /* content */
+  main{padding:0 0 80px}
+  section{padding:34px clamp(18px,4vw,60px);border-bottom:1px solid var(--line);scroll-margin-top:10px}
+  .hero{position:relative;padding:60px clamp(18px,4vw,60px)}
+  .hero h1{font-size:clamp(30px,6vw,56px);margin:0 0 4px;color:var(--grn);text-shadow:0 0 18px var(--grn-dim)}
+  .hero p.tag{font-family:var(--mono);color:var(--grn-soft);margin:0 0 18px;font-size:14px}
+  .hero .lead{max-width:680px;font-size:18px;color:var(--txt)}
+  .corner{position:absolute;width:34px;height:34px;border:2px solid var(--grn-dim);opacity:.6}
+  .c1{top:14px;left:14px;border-right:0;border-bottom:0}
+  .c2{top:14px;right:14px;border-left:0;border-bottom:0}
+  .kicker{font-family:var(--mono);color:var(--grn);font-size:12px;letter-spacing:3px;text-transform:uppercase;margin:0 0 6px}
+  h2.sec{font-size:24px;margin:0 0 18px;display:flex;align-items:center;gap:10px}
+  h2.sec::before{content:"▸";color:var(--grn)}
+
+  .grid{display:grid;gap:16px}
+  .cols-2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+  .cols-3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+  .card h3{margin:0 0 8px;font-size:15px;color:var(--grn-soft)}
+  .card .big{font-size:13px;color:var(--mut)}
+
+  /* callouts */
+  .note{border-left:4px solid var(--grn-dim);background:#0a1612;padding:12px 16px;border-radius:0 8px 8px 0;margin:14px 0}
+  .warn{border-left-color:var(--amber);background:#1a1407}
+  .danger{border-left-color:var(--red);background:#1a0b0b}
+  .note .t{font-family:var(--mono);font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--grn);margin-bottom:4px}
+  .warn .t{color:var(--amber)} .danger .t{color:var(--red)}
+
+  /* build stages */
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin:14px 0;overflow:hidden}
+  .stage > header{display:flex;align-items:center;gap:14px;padding:16px 18px;cursor:pointer;user-select:none}
+  .stage > header:hover{background:#0c1a16}
+  .stage .num{font-family:var(--mono);font-size:13px;color:#04110a;background:var(--grn-dim);
+    width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none;font-weight:bold;transition:.3s}
+  .stage.done .num{background:var(--grn);box-shadow:0 0 12px var(--grn)}
+  .stage .htitle{font-family:var(--mono);font-size:15px;color:#eafff0;flex:1}
+  .stage .time{font-family:var(--mono);font-size:11px;color:var(--mut)}
+  .stage .chev{color:var(--mut);transition:transform .3s}
+  .stage.open .chev{transform:rotate(90deg)}
+  .stage .body{display:none;padding:4px 18px 20px 18px;border-top:1px solid var(--line)}
+  .stage.open .body{display:block}
+  ul.steps{list-style:none;padding:0;margin:12px 0}
+  ul.steps li{display:flex;gap:10px;align-items:flex-start;padding:7px 0}
+  ul.steps input{appearance:none;-webkit-appearance:none;width:20px;height:20px;flex:none;margin-top:2px;
+    border:2px solid var(--grn-dim);border-radius:5px;cursor:pointer;position:relative;background:#06120c}
+  ul.steps input:checked{background:var(--grn);border-color:var(--grn);box-shadow:0 0 8px var(--grn)}
+  ul.steps input:checked::after{content:"✓";position:absolute;inset:0;color:#04110a;font-weight:bold;
+    display:grid;place-items:center;font-size:13px}
+  ul.steps li.checked span{color:var(--mut);text-decoration:line-through}
+  .test{margin-top:10px;border:1px dashed var(--grn-dim);background:#08140e;border-radius:8px;padding:10px 14px}
+  .test b{color:var(--grn);font-family:var(--mono)}
+
+  /* tables */
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th{font-family:var(--mono);font-size:12px;color:var(--grn);text-transform:uppercase;letter-spacing:1px}
+  td code{white-space:nowrap}
+  tr:hover td{background:#0a1410}
+
+  pre{background:#060f0a;border:1px solid #123;border-radius:10px;padding:16px;overflow:auto;
+    font-family:var(--mono);font-size:12.5px;color:var(--grn-soft);line-height:1.5}
+
+  /* accordions */
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin:10px 0;padding:0 16px}
+  details[open]{background:var(--panel2)}
+  summary{cursor:pointer;padding:14px 0;font-family:var(--mono);font-size:14px;color:var(--grn-soft);list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"+ ";color:var(--grn);font-weight:bold}
+  details[open] summary::before{content:"– "}
+  details .inner{padding:0 0 16px;border-top:1px solid var(--line);margin-top:0}
+  details .inner p:first-child{margin-top:14px}
+
+  .pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:20px;
+    border:1px solid var(--grn-dim);color:var(--grn-soft);margin:0 4px 4px 0}
+
+  footer{padding:30px clamp(18px,4vw,60px);color:var(--mut);font-family:var(--mono);font-size:12px}
+
+  @media(max-width:820px){
+    .layout{grid-template-columns:1fr}
+    nav.side{position:static;height:auto;display:flex;flex-wrap:wrap;align-items:center;gap:2px;padding:10px}
+    nav.side .brand{width:100%;padding:6px 8px 8px}
+    nav.side a{padding:6px 10px;border-left:0;border-bottom:2px solid transparent;font-size:12px}
+    nav.side a.active{border-left:0;border-bottom-color:var(--grn)}
+    .progwrap{width:100%;border-top:1px solid var(--line)}
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ============ SIDEBAR ============ -->
+  <nav class="side">
+    <div class="brand">🛰️ ReconBot <small>BUILD&nbsp;CONSOLE</small></div>
+    <a href="#overview" class="navlink">Overview</a>
+    <a href="#safety" class="navlink">⚠ Safety First</a>
+    <a href="#build" class="navlink">Build Steps</a>
+    <a href="#wiring" class="navlink">Wiring</a>
+    <a href="#parts" class="navlink">Parts List</a>
+    <a href="#print" class="navlink">3D Printing</a>
+    <a href="#trouble" class="navlink">Troubleshooting</a>
+    <a href="#learn" class="navlink">How It Works</a>
+    <div class="progwrap">
+      <div class="lbl"><span>MISSION PROGRESS</span><span id="ppct">0%</span></div>
+      <div class="bar"><i id="pbar"></i></div>
+      <button class="reset" id="resetBtn">RESET PROGRESS</button>
+    </div>
+  </nav>
+
+  <!-- ============ MAIN ============ -->
+  <main>
+
+    <!-- HERO -->
+    <div class="hero" id="overview">
+      <span class="corner c1"></span><span class="corner c2"></span>
+      <p class="kicker">// Recon Drone Project</p>
+      <h1>ReconBot</h1>
+      <p class="tag">A tactical two-wheeled recon drone you build together.</p>
+      <p class="lead">Two wheels, a camera that tilts to look around, and live video streamed
+        straight to an iPhone — no app to install. Drive it from a touch D-pad in your browser.
+        Everything below is staged so each piece is tested before the next. Check off steps as
+        you go; your progress is saved automatically.</p>
+      <div style="margin-top:18px">
+        <span class="pill">ESP32-S3-CAM brain</span>
+        <span class="pill">iPhone web control</span>
+        <span class="pill">Tilting camera</span>
+        <span class="pill">3D-printed body</span>
+        <span class="pill">No balancing code</span>
+      </div>
+    </div>
+
+    <!-- SAFETY -->
+    <section id="safety">
+      <p class="kicker">Read this together first</p>
+      <h2 class="sec">Safety First</h2>
+      <div class="grid cols-2">
+        <div class="note danger">
+          <div class="t">⚠ Batteries are not toys</div>
+          Never short the 18650, charge it only on the TP4056, never leave it charging
+          unattended, and never puncture or crush a cell.
+        </div>
+        <div class="note warn">
+          <div class="t">Power off before USB</div>
+          Always flip the bot's power switch OFF before plugging USB in to program it,
+          so two power sources don't fight.
+        </div>
+        <div class="note warn">
+          <div class="t">Wheels off the ground</div>
+          The first time you test motors, hold the bot or prop the wheels up so it can't
+          drive off the table.
+        </div>
+        <div class="note">
+          <div class="t">Check + and –</div>
+          Double-check plus and minus before switching on. Reversed power kills boards.
+          If anything gets hot fast — switch off immediately.
+        </div>
+      </div>
+    </section>
+
+    <!-- BUILD STEPS -->
+    <section id="build">
+      <p class="kicker">Work top to bottom · tap a stage to open it</p>
+      <h2 class="sec">Build Steps</h2>
+      <p class="big" style="color:var(--mut)">Each stage ends in a <b style="color:var(--grn)">✅ TEST</b>.
+        Don't move on until the test passes — that's the secret to a smooth build. Tap a stage header to expand it.</p>
+      <div id="stages"></div>
+    </section>
+
+    <!-- WIRING -->
+    <section id="wiring">
+      <p class="kicker">Every wire, every pin</p>
+      <h2 class="sec">Wiring</h2>
+
+      <h3>1 · Power tree — build &amp; test this first</h3>
+      <p>One 18650 cell. The brain and the motors live on <b>separate power rails</b> on purpose:
+        motors are electrically noisy and would otherwise reset the camera. Set the converter voltages
+        with a multimeter <b>before</b> connecting any board.</p>
+      <div style="overflow:auto;background:#060f0a;border:1px solid #123;border-radius:10px;padding:10px">
+      <svg viewBox="0 0 1000 540" style="width:100%;height:auto;min-width:720px;display:block" font-family="Courier New, monospace">
+        <defs>
+          <style>
+            .box{fill:#0c1a16;stroke:#1f8b10;stroke-width:1.5;rx:8}
+            .box.brain{stroke:#39ff14;stroke-width:2}
+            .ttl{fill:#eafff0;font-size:13px;font-weight:bold}
+            .sub{fill:#7fa493;font-size:10px}
+            .pin{fill:#cfe9d8;font-size:10px}
+            .buslbl{font-size:11px;font-weight:bold}
+            .w{fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+            .bat{stroke:#ff5a5a}.v33{stroke:#39ff14}.v5{stroke:#ffb000}
+            .gnd{stroke:#6f93a3}.sig{stroke:#36d6ff}.srv{stroke:#ffe14d}.mot{stroke:#c08bff}
+          </style>
+        </defs>
+
+        <!-- legend -->
+        <g transform="translate(14,12)" font-size="11">
+          <line class="w bat" x1="0" y1="6" x2="22" y2="6"/><text x="26" y="10" fill="#ff5a5a">battery</text>
+          <line class="w v33" x1="96" y1="6" x2="118" y2="6"/><text x="122" y="10" fill="#39ff14">3.3V brain</text>
+          <line class="w v5" x1="210" y1="6" x2="232" y2="6"/><text x="236" y="10" fill="#ffb000">5V rail</text>
+          <line class="w gnd" x1="306" y1="6" x2="328" y2="6"/><text x="332" y="10" fill="#6f93a3">ground</text>
+          <line class="w sig" x1="396" y1="6" x2="418" y2="6"/><text x="422" y="10" fill="#36d6ff">motor signal</text>
+          <line class="w srv" x1="520" y1="6" x2="542" y2="6"/><text x="546" y="10" fill="#ffe14d">servo signal</text>
+          <line class="w mot" x1="640" y1="6" x2="662" y2="6"/><text x="666" y="10" fill="#c08bff">motor power</text>
+        </g>
+
+        <!-- ===== BUS BARS ===== -->
+        <line class="w v5"  x1="210" y1="58" x2="900" y2="58"/>
+        <text class="buslbl" x="214" y="52" fill="#ffb000">+5V RAIL</text>
+        <line class="w gnd" x1="40"  y1="486" x2="900" y2="486"/>
+        <text class="buslbl" x="44" y="480" fill="#6f93a3">GND  (everything ties here)</text>
+
+        <!-- ===== MODULES ===== -->
+        <!-- 18650 -->
+        <rect class="box" x="30" y="92" width="120" height="44" rx="8"/>
+        <text class="ttl" x="44" y="112">18650</text><text class="sub" x="44" y="127">Li-ion cell</text>
+        <!-- TP4056 -->
+        <rect class="box" x="30" y="160" width="120" height="44" rx="8"/>
+        <text class="ttl" x="44" y="180">TP4056</text><text class="sub" x="44" y="195">charge+protect</text>
+        <!-- SWITCH -->
+        <rect class="box" x="30" y="228" width="120" height="36" rx="8"/>
+        <text class="ttl" x="44" y="251">SWITCH</text>
+        <!-- TPS63020 -->
+        <rect class="box" x="210" y="96" width="130" height="50" rx="8"/>
+        <text class="ttl" x="224" y="116">TPS63020</text><text class="sub" x="224" y="132">buck-boost → 3.3V</text>
+        <!-- MT3608 -->
+        <rect class="box" x="210" y="210" width="130" height="50" rx="8"/>
+        <text class="ttl" x="224" y="230">MT3608</text><text class="sub" x="224" y="246">boost → 5.0V</text>
+        <!-- ESP32 brain -->
+        <rect class="box brain" x="420" y="92" width="172" height="320" rx="8"/>
+        <text class="ttl" x="434" y="114">ESP32-S3-CAM</text>
+        <text class="sub" x="434" y="128">brain · camera · WiFi</text>
+        <!-- ESP32 power-in pins (left) -->
+        <text class="pin" x="426" y="152">3V3</text><circle cx="420" cy="148" r="3" fill="#39ff14"/>
+        <text class="pin" x="426" y="404">GND</text><circle cx="420" cy="400" r="3" fill="#6f93a3"/>
+        <!-- ESP32 signal pins (right) -->
+        <g text-anchor="end">
+          <text class="pin" x="586" y="152">G42</text><circle cx="592" cy="148" r="3" fill="#36d6ff"/>
+          <text class="pin" x="586" y="182">G41</text><circle cx="592" cy="178" r="3" fill="#36d6ff"/>
+          <text class="pin" x="586" y="212">G40</text><circle cx="592" cy="208" r="3" fill="#36d6ff"/>
+          <text class="pin" x="586" y="242">G39</text><circle cx="592" cy="238" r="3" fill="#36d6ff"/>
+          <text class="pin" x="586" y="272">G38</text><circle cx="592" cy="268" r="3" fill="#36d6ff"/>
+          <text class="pin" x="586" y="302">G47</text><circle cx="592" cy="298" r="3" fill="#36d6ff"/>
+          <text class="pin" x="586" y="344">G21</text><circle cx="592" cy="340" r="3" fill="#ffe14d"/>
+        </g>
+        <!-- L298N -->
+        <rect class="box" x="690" y="92" width="150" height="150" rx="8"/>
+        <text class="ttl" x="704" y="114">L298N</text><text class="sub" x="704" y="128">motor driver</text>
+        <g><text class="pin" x="700" y="152">IN1</text><circle cx="690" cy="148" r="3" fill="#36d6ff"/>
+           <text class="pin" x="700" y="170">IN2</text><circle cx="690" cy="166" r="3" fill="#36d6ff"/>
+           <text class="pin" x="700" y="188">ENA</text><circle cx="690" cy="184" r="3" fill="#36d6ff"/>
+           <text class="pin" x="700" y="206">IN3</text><circle cx="690" cy="202" r="3" fill="#36d6ff"/>
+           <text class="pin" x="700" y="224">IN4</text><circle cx="690" cy="220" r="3" fill="#36d6ff"/>
+           <text class="pin" x="744" y="224">ENB</text><circle cx="734" cy="220" r="3" fill="#36d6ff"/></g>
+        <text class="pin" x="754" y="108" text-anchor="middle">VS</text><circle cx="754" cy="92" r="3" fill="#ffb000"/>
+        <text class="pin" x="806" y="108" text-anchor="middle">+5V</text><circle cx="806" cy="92" r="3" fill="#ffb000"/>
+        <!-- SERVO -->
+        <rect class="box" x="690" y="318" width="150" height="64" rx="8"/>
+        <text class="ttl" x="704" y="340">MG90S</text><text class="sub" x="704" y="355">camera tilt</text>
+        <text class="pin" x="700" y="372">SIG</text><circle cx="690" cy="340" r="3" fill="#ffe14d"/>
+        <circle cx="690" cy="358" r="3" fill="#ffb000"/><text class="pin" x="700" y="362" opacity="0">v</text>
+        <!-- MOTORS -->
+        <rect class="box" x="880" y="118" width="100" height="44" rx="8"/>
+        <text class="ttl" x="894" y="145">MOTOR L</text>
+        <rect class="box" x="880" y="190" width="100" height="44" rx="8"/>
+        <text class="ttl" x="894" y="217">MOTOR R</text>
+
+        <!-- ===== WIRES ===== -->
+        <!-- battery chain (red) -->
+        <path class="w bat" d="M90,136 V160"/>
+        <path class="w bat" d="M90,204 V228"/>
+        <path class="w bat" d="M150,246 H185 M185,246 V120 H210"/>      <!-- switch → TPS in -->
+        <path class="w bat" d="M185,246 V235 H210"/>                    <!-- switch → MT3608 in -->
+        <!-- 3.3V (green) TPS → ESP32 3V3 -->
+        <path class="w v33" d="M340,120 H385 V148 H420"/>
+        <!-- 5V rail taps (amber) -->
+        <path class="w v5" d="M275,210 V58"/>                            <!-- MT3608 out → bus -->
+        <path class="w v5" d="M754,92 V58"/>                             <!-- L298N VS -->
+        <path class="w v5" d="M806,92 V58"/>                             <!-- L298N +5V -->
+        <path class="w v5" d="M860,58 V358 H690"/>                       <!-- bus → servo V+ -->
+        <!-- ground drops (gray) -->
+        <path class="w gnd" d="M60,136 V486"/>                           <!-- 18650 - -->
+        <path class="w gnd" d="M120,204 V486"/>                          <!-- TP4056 - -->
+        <path class="w gnd" d="M300,146 V486"/>                          <!-- TPS GND -->
+        <path class="w gnd" d="M320,260 V486"/>                          <!-- MT3608 GND -->
+        <path class="w gnd" d="M420,400 H400 V486"/>                     <!-- ESP32 GND -->
+        <path class="w gnd" d="M724,242 V486"/>                          <!-- L298N GND -->
+        <path class="w gnd" d="M690,358 H672 V486"/>                     <!-- servo GND -->
+        <!-- motor control signals (cyan) ESP32 → L298N -->
+        <path class="w sig" d="M592,148 H690"/>
+        <path class="w sig" d="M592,178 H641 V166 H690"/>
+        <path class="w sig" d="M592,208 H655 V184 H690"/>
+        <path class="w sig" d="M592,238 H665 V202 H690"/>
+        <path class="w sig" d="M592,268 H655 V220 H690"/>
+        <path class="w sig" d="M592,298 H760 V240 H734 V220"/>
+        <!-- servo signal (yellow) -->
+        <path class="w srv" d="M592,340 H690"/>
+        <!-- motor power out (purple) L298N → motors -->
+        <path class="w mot" d="M840,150 H880"/>
+        <path class="w mot" d="M840,210 H880"/>
+      </svg>
+      </div>
+      <details style="margin-top:8px">
+        <summary>Text version of the power tree</summary>
+        <div class="inner">
+        <pre>
+  [18650 +]─► TP4056 OUT+ ─► [SWITCH] ─┬─► TPS63020 IN+ ─► OUT 3.3V ─► ESP32-S3-CAM  3V3
+  [18650 -]─► TP4056 OUT- ─────────────┤   TPS63020 IN- ─► OUT GND  ─► ESP32-S3-CAM  GND
+                                        │
+                                        ├─► MT3608 IN+ ─► OUT 5V ─┬─► L298N  +12V (VS)
+                                        │   MT3608 IN- ─► OUT GND ├─► L298N  +5V (logic, jumper OFF)
+                                        │                         └─► MG90S  V+ (red)
+                                        │
+   ALL grounds tie together: 18650- · TP4056 OUT- · TPS63020 GND · MT3608 GND ·
+   L298N GND · ESP32 GND · MG90S brown</pre>
+        </div>
+      </details>
+      <div class="grid cols-3">
+        <div class="card"><h3>TP4056</h3><span class="big">Battery on <code>B+ / B-</code>. Bot draws from <code>OUT+ / OUT-</code>. Charge any time via its USB-C.</span></div>
+        <div class="card"><h3>TPS63020</h3><span class="big">Fixed <b>3.3 V</b> out → powers the brain. Confirm ~3.3 V before connecting.</span></div>
+        <div class="card"><h3>MT3608</h3><span class="big">Turn its trim-pot until output reads <b>5.0 V</b> → powers motors + servo.</span></div>
+      </div>
+      <div class="note danger"><div class="t">⚠ TPS63020 limit</div>
+        Never feed more than <b>5.5 V</b> into the TPS63020 — it's a single-cell part. That's why the
+        brain runs straight off the one 18650, not a 2-cell pack.</div>
+
+      <h3 style="margin-top:26px">2 · ESP32-S3-CAM → L298N motor driver</h3>
+      <p class="big" style="color:var(--mut)">Camera pins &amp; flash settings are confirmed from the FORIOT
+        ESP32-S3-CAM pinout. The motor GPIOs below dodge the camera, flash/PSRAM, USB, serial, and boot pins.</p>
+      <table>
+        <tr><th>ESP32-S3 pin</th><th>→ L298N</th><th>Meaning</th></tr>
+        <tr><td><code>GPIO 42</code></td><td>IN1</td><td>Left motor direction A</td></tr>
+        <tr><td><code>GPIO 41</code></td><td>IN2</td><td>Left motor direction B</td></tr>
+        <tr><td><code>GPIO 40</code></td><td>ENA</td><td>Left motor speed (PWM)</td></tr>
+        <tr><td><code>GPIO 39</code></td><td>IN3</td><td>Right motor direction A</td></tr>
+        <tr><td><code>GPIO 38</code></td><td>IN4</td><td>Right motor direction B</td></tr>
+        <tr><td><code>GPIO 47</code></td><td>ENB</td><td>Right motor speed (PWM)</td></tr>
+        <tr><td><code>GND</code></td><td>GND</td><td>shared ground</td></tr>
+      </table>
+      <div class="note warn"><div class="t">L298N jumpers</div>
+        Remove the <b>ENA</b> and <b>ENB</b> jumpers (so PWM speed control works) and the
+        <b>+5V regulator jumper</b> (we feed 5 V in from the MT3608 instead).</div>
+      <div class="note"><div class="t">microSD slot</div>
+        GPIO 38/39/40 are the board's microSD pins — we borrow them for motors, so
+        <b>leave the microSD slot empty</b> for this build.</div>
+
+      <h3 style="margin-top:26px">3 · ESP32-S3-CAM → MG90S servo (camera tilt)</h3>
+      <table>
+        <tr><th>Servo wire</th><th>→ connects to</th></tr>
+        <tr><td><b style="color:#ffb000">Orange</b> (signal)</td><td><code>GPIO 21</code></td></tr>
+        <tr><td><b style="color:var(--red)">Red</b> (V+)</td><td>5 V rail (MT3608 out)</td></tr>
+        <tr><td><b>Brown</b> (GND)</td><td>common ground</td></tr>
+      </table>
+
+      <h3 style="margin-top:26px">Pre-power checklist</h3>
+      <div class="card">
+        <ul class="steps" data-group="wiring">
+          <li><input type="checkbox"><span>+ and – correct at every module (look twice)</span></li>
+          <li><input type="checkbox"><span>TPS63020 reads 3.3 V, MT3608 reads 5.0 V</span></li>
+          <li><input type="checkbox"><span>All grounds connected together</span></li>
+          <li><input type="checkbox"><span>L298N ENA/ENB jumpers removed; +5V reg jumper removed</span></li>
+          <li><input type="checkbox"><span>microSD slot empty</span></li>
+          <li><input type="checkbox"><span>Wheels off the ground</span></li>
+          <li><input type="checkbox"><span>USB unplugged / power switch off</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- PARTS -->
+    <section id="parts">
+      <p class="kicker">All from your parts bin</p>
+      <h2 class="sec">Parts List</h2>
+      <table>
+        <tr><th>Part</th><th>Role</th><th>Have</th></tr>
+        <tr><td>ESP32-S3-CAM (FORIOT, OV3660)</td><td>Camera + brain + WiFi + control</td><td>6</td></tr>
+        <tr><td>L298N dual H-bridge</td><td>Drives both wheels</td><td>4</td></tr>
+        <tr><td>MG90S micro servo</td><td>Tilts the camera</td><td>5</td></tr>
+        <tr><td>DC gear motors + wheels</td><td>Drive — from the car kit</td><td>kit</td></tr>
+        <tr><td>18650 Li-ion cell</td><td>Main battery</td><td>confirm 1</td></tr>
+        <tr><td>18650 holder</td><td>Holds the cell</td><td>8</td></tr>
+        <tr><td>TP4056 USB-C charger (protected)</td><td>Charge + protect the cell</td><td>6</td></tr>
+        <tr><td>TPS63020 buck-boost (3.3 V)</td><td>Clean power for the brain</td><td>5</td></tr>
+        <tr><td>MT3608 boost</td><td>5 V for motors + servo</td><td>5</td></tr>
+        <tr><td>Rocker switch</td><td>Master on/off</td><td>5</td></tr>
+        <tr><td>Hookup wire / heatshrink / solder</td><td>Wiring</td><td>kit</td></tr>
+        <tr><td>3D-printed chassis set</td><td>Body, wheels, brackets, cradle</td><td>print it</td></tr>
+      </table>
+      <p class="big" style="color:var(--mut)">Optional later add-ons you also own: MPU-6050 IMU (tilt read-out),
+        DFPlayer Mini + speaker (sound effects), SSD1306 OLED (status display), LEDs (headlight), NEO-6M GPS.</p>
+    </section>
+
+    <!-- 3D PRINT -->
+    <section id="print">
+      <p class="kicker">Print while you build</p>
+      <h2 class="sec">3D Printing</h2>
+      <p>Two ready-to-print STLs are included — no CAD needed:
+        <code>freecad/drone_chassis.stl</code> and <code>freecad/drone-lid.stl</code>.
+        The wheels come from the salvaged car kit, not the printer.</p>
+      <div class="grid cols-2">
+        <div class="card"><h3>Chassis ×1</h3><span class="big">Main body — holds the motors, electronics, and 18650; hangs below the axle so the mass sits low.</span></div>
+        <div class="card"><h3>Lid ×1</h3><span class="big">Closes the top of the chassis and protects the electronics.</span></div>
+      </div>
+      <table>
+        <tr><th>Setting</th><th>Chassis &amp; lid</th></tr>
+        <tr><td>Material</td><td>PLA (PETG for tougher)</td></tr>
+        <tr><td>Layer height</td><td>0.20 mm</td></tr>
+        <tr><td>Walls / Infill</td><td>3 walls / 20–30%</td></tr>
+        <tr><td>Supports</td><td>yes (overhangs / camera window)</td></tr>
+      </table>
+      <div class="note"><div class="t">Design intent</div>
+        Keep the <b>mass low and centered</b> — the heavy 18650 at the bottom of the chassis is what makes the
+        pendulum sit upright with no balancing code. Style the rest however you like.</div>
+    </section>
+
+    <!-- TROUBLESHOOTING -->
+    <section id="trouble">
+      <p class="kicker">When something doesn't work</p>
+      <h2 class="sec">Troubleshooting</h2>
+      <details><summary>Upload fails: "Failed to connect… No serial data received"</summary>
+        <div class="inner">
+          <p>In order of likelihood:</p>
+          <ol>
+            <li><b>Wrong port</b> — use the <b>TTL</b> USB-C port, not OTG.</li>
+            <li><b>Upload Speed too high</b> — drop to <b>115200</b>.</li>
+            <li><b>Bad cable</b> — must be a data cable, not charge-only.</li>
+            <li><b>Button timing</b> — hold <b>BOOT</b> → tap <b>RST</b> → release <b>BOOT</b> → click Upload.</li>
+            <li><b>Battery rail on</b> — power switch must be OFF while programming.</li>
+            <li><b>Flaky BOOT button</b> — short GPIO0 to GND while tapping RST, then release.</li>
+          </ol>
+        </div></details>
+      <details><summary>Camera init failed (CAMERA INIT FAILED 0x…)</summary>
+        <div class="inner"><p>Almost always the <b>PSRAM</b> setting. Tools ▸ PSRAM ▸ <b>OPI PSRAM</b>, then re-flash.
+          The pin map is identical to your working cameras, so it isn't the pins.</p></div></details>
+      <details><summary>HUD loads but the video box stays black</summary>
+        <div class="inner"><p>Video is on <b>port 81</b>. Reload the page (it auto-retries every second). Check the
+          Serial Monitor — the bot still serves the page and drives even if the camera didn't start.</p></div></details>
+      <details><summary>Camera resets every time the motors move</summary>
+        <div class="inner"><p>Classic shared-rail noise. The brain <b>must</b> be on the TPS63020 3.3 V rail and the
+          motors on the MT3608 5 V rail, both fed straight from the cell — not from each other. And make sure
+          <b>all grounds are tied together</b>.</p></div></details>
+      <details><summary>The D-pad does nothing</summary>
+        <div class="inner"><p>Check the 6 signal wires match the table. Confirm the L298N has <b>+12V (VS)</b>, <b>+5V</b>,
+          and <b>GND</b>, and that the motors are on OUT1/2 and OUT3/4.</p></div></details>
+      <details><summary>One wheel spins the wrong way</summary>
+        <div class="inner"><p>Swap that motor's two output wires, <b>or</b> flip <code>INVERT_LEFT</code> /
+          <code>INVERT_RIGHT</code> in <code>config.h</code> and re-upload.</p></div></details>
+      <details><summary>Motors run only at full speed regardless of the slider</summary>
+        <div class="inner"><p>The <b>ENA/ENB jumpers are still on</b> the L298N. Remove them.</p></div></details>
+      <details><summary>It won't stay upright at rest</summary>
+        <div class="inner"><p>Center of mass must be <b>below</b> the axle. Put the battery at the very bottom of the
+          pod and remove anything top-heavy. If it lurches on launch, lower the speed slider.</p></div></details>
+      <details><summary>Phone can't find the "ReconBot" WiFi</summary>
+        <div class="inner"><p>Give it ~5 s after power-on; check the Serial Monitor printed <code>AP up</code>.
+          WiFi is 2.4 GHz. Ignore the "no internet" warning — the bot isn't a router.</p></div></details>
+    </section>
+
+    <!-- LEARN -->
+    <section id="learn">
+      <p class="kicker">The educational part</p>
+      <h2 class="sec">How It Works</h2>
+      <details><summary>Why a "pendulum" instead of a balancing Segway?</summary>
+        <div class="inner"><p>Both have two wheels on one axle. The difference is <b>where the weight sits</b>.
+          A self-balancer carries its weight <i>above</i> the axle (like balancing a broom) and needs a computer
+          constantly catching it with a PID controller — hard to tune, especially with cheap gear motors. Our
+          pendulum hangs its weight <i>below</i> the axle, so gravity pulls it upright on its own — no sensor,
+          no control loop. <b>The best fix for a hard control problem is often to redesign so you don't need
+          control at all.</b></p></div></details>
+      <details><summary>How the motors are controlled — H-bridge + PWM</summary>
+        <div class="inner"><p>Flip a motor's voltage and it spins the other way. The <b>L298N</b> has two
+          "H-bridges" — switches arranged in an H around each motor — to flip that voltage from code. For speed,
+          we flick power on and off thousands of times a second; the fraction of "on" time is the <b>duty cycle</b>.
+          That trick is <b>PWM</b>, and it's how nearly everything dims an LED or sets a motor's speed.</p></div></details>
+      <details><summary>How the servo aims the camera</summary>
+        <div class="inner"><p>A hobby servo is told an <b>angle</b>, not a speed. It listens for a pulse every 20 ms:
+          a short pulse = one end, a long pulse = the other end. We generate those exact pulses to point the camera
+          up or down.</p></div></details>
+      <details><summary>How video reaches your phone — MJPEG</summary>
+        <div class="inner"><p>The camera takes a JPEG photo, sends it, takes another… ~20 times a second. Your eye
+          blends them into motion. It's called <b>MJPEG</b> — not as efficient as "real" video, but dead simple and
+          low-latency, which is exactly what you want when driving a robot.</p></div></details>
+      <details><summary>How the controls reach the bot — a tiny web server</summary>
+        <div class="inner"><p>The ESP32 runs a small web server. Port 80 serves the control page and listens for
+          commands like <code>/control?cmd=F</code>; port 81 serves the video so a slow frame never blocks a command.
+          No app store — the bot <i>is</i> a web server and the iPhone's browser is the client.</p></div></details>
+      <details><summary>The failsafe — why the bot stops itself</summary>
+        <div class="inner"><p>The page pings the bot every 0.4 s. If the firmware hears nothing for 0.7 s (app closed,
+          out of range), it stops the motors. That's a <b>watchdog</b> — a core safety pattern in robots, cars, and
+          industrial machines.</p></div></details>
+      <details><summary>Why two separate power supplies?</summary>
+        <div class="inner"><p>Motors are electrically loud — they dip and spike the voltage. A brain sharing that wire
+          browns out and resets (the #1 beginner headache). So the brain gets its own buck-boost converter that holds
+          a steady 3.3 V even when the battery sags, and the noisy motors live on their own 5 V rail.</p></div></details>
+    </section>
+
+    <footer>
+      ReconBot Build Console · firmware in <code>firmware/reconbot/</code> ·
+      progress saved in your browser.
+    </footer>
+  </main>
+</div>
+
+<script>
+// ---------- Build stage data ----------
+const STAGES = [
+  { n:0, title:"Set up the computer", time:"30 min",
+    steps:[
+      "Install the Arduino IDE 2.x (free, arduino.cc)",
+      "Add the ESP32 boards URL in Preferences (see README)",
+      "Boards Manager → install \"esp32\" by Espressif (v3.0+)",
+      "Plug the board into the TTL USB-C port (CH340C) — a COM port appears"
+    ],
+    test:"The board shows up as a COM port. (No code yet.)" },
+  { n:1, title:"Flash the firmware — see video on the iPhone", time:"15 min",
+    steps:[
+      "Open firmware/reconbot/reconbot.ino (4 tabs open together)",
+      "In config.h set your hotspot password (AP_PASS)",
+      "Tools: ESP32S3 Dev Module · OPI PSRAM · 16MB · CDC On Boot Disabled · 115200",
+      "Download mode: hold BOOT → tap RST → release BOOT → click Upload",
+      "Serial Monitor (115200) prints: AP up… http://192.168.4.1",
+      "iPhone → WiFi \"ReconBot\" → Safari → http://192.168.4.1"
+    ],
+    test:"The green HUD loads on the phone with LIVE VIDEO. (No motors yet — that's fine.)" },
+  { n:2, title:"Print the parts", time:"background",
+    steps:[
+      "Slice the included STLs: drone_chassis.stl + drone-lid.stl",
+      "Wheels come from the car kit — no need to print them",
+      "Start the prints — they run while you do the next stages"
+    ],
+    test:"Boards + 18650 fit inside the chassis; the lid closes over the top." },
+  { n:3, title:"Build & test the power tree", time:"45 min",
+    steps:[
+      "On a breadboard: 18650 → TP4056 (B+/B-); bot draws from OUT+/OUT-",
+      "Add the switch in the OUT+ line",
+      "Wire TPS63020 input to the switched rail; confirm 3.3 V out",
+      "Wire MT3608 input; adjust its pot to 5.0 V out"
+    ],
+    test:"Multimeter reads 3.3 V and 5.0 V; nothing gets warm." },
+  { n:4, title:"Wire & test the motors", time:"45 min",
+    steps:[
+      "Power off. Wire the 6 ESP32→L298N signal pins + GND",
+      "Remove ENA/ENB jumpers and the +5V regulator jumper",
+      "Feed L298N +12V and +5V from the 5 V rail; connect GND",
+      "Connect motors to OUT1/2 and OUT3/4 — wheels off the ground",
+      "Power brain from 3.3 V rail; power on; connect phone; press D-pad"
+    ],
+    test:"Forward = both wheels spin the right way. Wrong way? Flip INVERT_LEFT/RIGHT in config.h." },
+  { n:5, title:"Wire & test the servo", time:"20 min",
+    steps:[
+      "Power off. Servo: orange→GPIO 21, red→5 V rail, brown→GND",
+      "Power on; open HUD; move the CAM TILT slider"
+    ],
+    test:"The camera tilts smoothly across its range and holds position." },
+  { n:6, title:"Mechanical assembly — the pendulum chassis", time:"1–2 hr",
+    steps:[
+      "Mount both motors so the shafts are coaxial (one straight line)",
+      "Press the car-kit wheels onto the shafts",
+      "The chassis hangs BELOW the axle; battery at the very bottom",
+      "Mount the servo + camera on the front of the chassis",
+      "Route wires neatly; leave slack at the servo, then clip the lid on"
+    ],
+    test:"Hands off — it sits upright on two wheels, body hanging below the axle." },
+  { n:7, title:"First drive & tuning", time:"ongoing fun",
+    steps:[
+      "Start with the speed slider low; throttle gently",
+      "Use camera tilt to scan a room",
+      "Tune feel in config.h: DEFAULT_SPEED, TURN_SPEED_SCALE, servo limits",
+      "Stretch goals: MPU-6050 tilt readout, headlight LED, DFPlayer sound"
+    ],
+    test:"You're driving a recon drone from the iPhone. Mission accomplished. 🟢" }
+];
+
+// ---------- Render stages ----------
+const wrap = document.getElementById('stages');
+STAGES.forEach(s=>{
+  const stepsHtml = s.steps.map((t,i)=>
+    `<li><input type="checkbox" data-key="s${s.n}-${i}"><span>${t}</span></li>`).join('');
+  const el = document.createElement('div');
+  el.className='stage'; el.id='stage'+s.n;
+  el.innerHTML = `
+    <header>
+      <div class="num">${s.n}</div>
+      <div class="htitle">${s.title}</div>
+      <div class="time">${s.time}</div>
+      <div class="chev">▸</div>
+    </header>
+    <div class="body">
+      <ul class="steps">${stepsHtml}</ul>
+      <div class="test"><b>✅ TEST —</b> ${s.test}</div>
+    </div>`;
+  wrap.appendChild(el);
+  el.querySelector('header').addEventListener('click',()=>el.classList.toggle('open'));
+});
+
+// ---------- Progress persistence ----------
+const KEY='reconbot-progress-v1';
+let state = JSON.parse(localStorage.getItem(KEY) || '{}');
+const allBoxes = ()=>document.querySelectorAll('input[type=checkbox][data-key]');
+
+function applyState(){
+  allBoxes().forEach(b=>{
+    b.checked = !!state[b.dataset.key];
+    b.closest('li').classList.toggle('checked', b.checked);
+  });
+  // stage done = all its boxes checked
+  STAGES.forEach(s=>{
+    const boxes=[...document.querySelectorAll(`#stage${s.n} input[type=checkbox]`)];
+    const done = boxes.length>0 && boxes.every(b=>b.checked);
+    document.getElementById('stage'+s.n).classList.toggle('done',done);
+  });
+  const boxes=[...allBoxes()];
+  const pct = boxes.length ? Math.round(100*boxes.filter(b=>b.checked).length/boxes.length) : 0;
+  document.getElementById('pbar').style.width = pct+'%';
+  document.getElementById('ppct').textContent = pct+'%';
+}
+// give the data-key to the wiring checklist boxes too
+document.querySelectorAll('ul.steps[data-group] input').forEach((b,i)=>{
+  b.dataset.key = 'wiring-'+i;
+});
+document.addEventListener('change',e=>{
+  if(e.target.matches('input[type=checkbox][data-key]')){
+    state[e.target.dataset.key]=e.target.checked;
+    localStorage.setItem(KEY,JSON.stringify(state));
+    applyState();
+  }
+});
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  if(confirm('Reset all build progress?')){ state={}; localStorage.removeItem(KEY); applyState(); }
+});
+applyState();
+// open stage 0 by default
+document.getElementById('stage0').classList.add('open');
+
+// ---------- Active nav highlight ----------
+const links=[...document.querySelectorAll('.navlink')];
+const secs=links.map(a=>document.querySelector(a.getAttribute('href')));
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(en=>{
+    if(en.isIntersecting){
+      links.forEach(l=>l.classList.toggle('active', l.getAttribute('href')==='#'+en.target.id));
+    }
+  });
+},{rootMargin:'-40% 0px -55% 0px'});
+secs.forEach(s=>s&&obs.observe(s));
+</script>
+</body>
+</html>
