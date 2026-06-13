@@ -8,6 +8,12 @@ camera to "look up" and scan a room.
 No app to install. The bot makes its own WiFi hotspot; your phone joins it and
 opens a web page. Touch-and-hold D-pad to drive, sliders for speed and camera tilt.
 
+![The assembled ReconBot — 3D-printed chassis and lid on car-kit wheels](pictures/reconbot-assembled.jpg)
+*The finished drone: printed chassis + lid, riding on salvaged car-kit wheels.*
+
+![Inside the chassis — motor driver, boost converter, 18650, and gear motors](pictures/reconbot-internals.jpg)
+*Inside: the L298N motor driver, MT3608 boost, 18650 cell, and the two gear motors.*
+
 ---
 
 ## What makes it cool
