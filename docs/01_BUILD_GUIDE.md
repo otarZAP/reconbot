@@ -111,8 +111,9 @@ warm. Don't connect any boards until both rails are confirmed.
 5. Power the brain from the 3.3 V rail (3V3 + GND). Switch on.
 6. Connect the phone, open the HUD, and press the D-pad.
 
-✅ **Test:** Forward = both wheels spin the same way (the way that would move the
-bot forward). Use Left/Right and the **speed slider**.
+✅ **Test:** push the joystick forward and both wheels spin the same way (the way
+that would move the bot forward). Push left/right to check steering. The further
+you push the stick, the faster it goes — there's no separate speed slider.
 
 * A wheel spins backward? Swap that motor's two output wires, **or** set
   `INVERT_LEFT`/`INVERT_RIGHT` in `config.h` and re-upload.
@@ -124,20 +125,7 @@ bot forward). Use Left/Right and the **speed slider**.
 
 ---
 
-## Stage 5 — Wire & test the servo (20 min)
-
-1. Switch off. Wire the **MG90S**: orange→GPIO 21, red→5 V rail, brown→GND
-   ([02_WIRING_GUIDE.md](02_WIRING_GUIDE.md) §3).
-2. Switch on, open the HUD, move the **CAM TILT** slider.
-
-✅ **Test:** the servo horn tilts smoothly across its range and holds position.
-
-> If it buzzes at the ends, narrow `SERVO_MIN_DEG`/`SERVO_MAX_DEG` in `config.h`
-> so it never pushes against a mechanical stop.
-
----
-
-## Stage 6 — Mechanical assembly (the pendulum chassis) (1–2 hr)
+## Stage 5 — Mechanical assembly (the pendulum chassis) (1–2 hr)
 
 This is what gives it its distinctive look. The key idea: **the two motors mount on a
 single axle line, and the chassis hangs below them.** Low weight = naturally
@@ -149,10 +137,10 @@ upright.
 3. The **chassis hangs below** the shaft line so its mass sits *below* the axle.
    Put the **heaviest item (the 18650) at the very bottom** — the lower the
    battery, the more stable and upright it sits.
-4. **Mount the servo + camera** on the front of the chassis: the servo body
-   fixes to the chassis, the camera fixes to the servo horn so it tilts up/down.
-5. Route wires neatly, secure with a little tape or zip-ties, leave slack at the
-   servo so it can move, then **clip the lid on** top.
+4. **Mount the camera** on the front of the chassis, facing forward. It's
+   **fixed** (no tilt) — aim it roughly level so you can see where you're driving.
+5. Route wires neatly and secure them with a little tape or zip-ties, then
+   **clip the lid on** top.
 
 ✅ **Test (the magic moment):** set it on the floor, hands off. It should sit
 upright on its two wheels, body hanging below the axle. A gentle
@@ -160,18 +148,18 @@ nudge and it rocks back upright.
 
 > If it won't stay upright: move the battery **lower**, and make sure the body's
 > center of mass is **below** the axle, not level with it. If it spins around the
-> axle hard when you hit Forward, lower the **speed slider** and/or raise
-> `TURN_SPEED_SCALE` smoothing — gentle starts keep the body from swinging.
+> axle hard when you hit Forward, push the stick more gently, lower
+> **`DEFAULT_SPEED`** in `config.h`, and/or raise **`JOY_EXPO`** for a softer
+> throttle — gentle starts keep the body from swinging.
 
 ---
 
-## Stage 7 — First drive & tuning (ongoing fun)
+## Stage 6 — First drive & tuning (ongoing fun)
 
-* **Speed slider** low to start. The pendulum body will bob when you accelerate —
-  that's authentic and expected. Smooth, gentle throttle looks best.
-* **Camera tilt** up to "scan" a room like the drone.
+* Start **gently**. The pendulum body will bob when you accelerate — that's
+  authentic and expected. Smooth, gentle throttle looks best.
 * Tune the *feel* in `config.h`: `DEFAULT_SPEED`, `TURN_SPEED_SCALE`,
-  servo limits. Re-upload to try changes.
+  `JOY_EXPO`. Re-upload to try changes.
 
 ### Ideas to grow it (great next lessons)
 

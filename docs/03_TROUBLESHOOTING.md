@@ -97,21 +97,11 @@ likelihood:
 
 ---
 
-## Servo
-
-**Servo buzzes / jitters at the extremes.**
-* It's pushing against a mechanical stop. Reduce `SERVO_MIN_DEG` /
-  `SERVO_MAX_DEG` range in `config.h`.
-
-**Servo doesn't move at all.**
-* Powered from **5 V** (not 3.3 V)? Signal on **GPIO 21**? Ground shared?
-
----
-
 ## Driving feel (pendulum chassis)
 
 **Body swings hard / spins around the axle on launch.**
-* Lower the **speed slider** — gentle throttle keeps the body from lurching.
+* Ease off the throttle (push the joystick less) or lower **`DEFAULT_SPEED`** in
+  `config.h` — gentle throttle keeps the body from lurching.
 * Move the **battery lower** in the chassis (lower center of mass = steadier).
 
 **Won't stay upright at rest.**

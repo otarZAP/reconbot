@@ -46,7 +46,7 @@ Total filament: small — a couple of hours, well under one spool.
 * Motors, the ESP32-S3-CAM, the L298N, and the 18650 should all sit in the
   **chassis** with the **battery lowest** (that low mass is what keeps the
   pendulum upright).
-* The camera mounts to the servo horn so it can tilt — see the
+* The camera fixes to the front of the chassis, facing forward — see the
   [build guide](../docs/01_BUILD_GUIDE.md).
 * The **lid** should close over the top without crushing wires. Route cables
   first, then clip it on.

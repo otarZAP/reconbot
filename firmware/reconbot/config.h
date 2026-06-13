@@ -66,15 +66,7 @@
 #define INVERT_RIGHT  false
 
 // ---------------------------------------------------------------------------
-//  3) Camera tilt servo  (MG90S)
-// ---------------------------------------------------------------------------
-#define SERVO_PIN     21
-#define SERVO_MIN_DEG 30     // lowest tilt the mechanics allow (don't hit body)
-#define SERVO_MAX_DEG 150    // highest tilt
-#define SERVO_START_DEG 90   // where it points on power-up (level)
-
-// ---------------------------------------------------------------------------
-//  4) Optional: MPU-6050 IMU (tilt read-out shown on the web HUD)
+//  3) Optional: MPU-6050 IMU (tilt read-out shown on the web HUD)
 // ---------------------------------------------------------------------------
 //  Leave USE_IMU 0 for the first build. Turn on later as a fun add-on.
 #define USE_IMU       0
@@ -82,7 +74,7 @@
 #define IMU_SCL       2
 
 // ---------------------------------------------------------------------------
-//  5) Driving feel / safety
+//  4) Driving feel / safety
 // ---------------------------------------------------------------------------
 #define PWM_FREQ      1000   // motor PWM frequency in Hz (1 kHz is quiet+smooth)
 #define PWM_RES_BITS  8      // 8-bit -> speed values 0..255
@@ -110,7 +102,7 @@
 #define FAILSAFE_MS   700
 
 // ---------------------------------------------------------------------------
-//  6) Camera resolution
+//  5) Camera resolution
 // ---------------------------------------------------------------------------
 //  Normal driving always stays at DRIVE_FRAMESIZE — smooth + responsive. The
 //  HD button in the app bumps the feed UP toward HIRES_CEILING: the firmware
@@ -125,7 +117,7 @@
 #define HIRES_CEILING    FRAMESIZE_UXGA   // 1600x1200 — most the HD button can reach
 
 // ---------------------------------------------------------------------------
-//  7) Optional headlight LED
+//  6) Optional headlight LED
 // ---------------------------------------------------------------------------
 //  A little front light for dark rooms, toggled from the web LIGHT button.
 //  You don't have the LED wired yet, so this is OFF by default — the button

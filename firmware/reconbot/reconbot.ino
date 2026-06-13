@@ -117,7 +117,7 @@ void setTargets(int left, int right) {
 }
 
 // Arcade mixing: turn the joystick (forward y + turn x) into left/right wheel
-// targets, scaled by the speed slider, with steering trim folded in.
+// targets, scaled by g_speed (DEFAULT_SPEED), with steering trim folded in.
 void mixDrive() {
   int turn  = (g_jx * TURN_SPEED_SCALE) / 100;     // gentle, aim-able steering
   int left  = ((g_jy + turn) * g_speed) / 100;
@@ -186,21 +186,6 @@ void danceRoutine() {
 }
 
 // ---------------------------------------------------------------------------
-//  SERVO (camera tilt)  —  driven with LEDC at 50 Hz, no library needed
-// ---------------------------------------------------------------------------
-void servoBegin() {
-  ledcAttach(SERVO_PIN, 50, 16);               // 50 Hz, 16-bit (auto channel/timer)
-}
-void setTilt(int deg) {
-  deg = constrain(deg, SERVO_MIN_DEG, SERVO_MAX_DEG);
-  // 50 Hz -> 20 ms (20000 us) period. Use the same 500-2500 us calibration that
-  // worked on the gimbal build: 500 us = 0 deg, 2500 us = 180 deg.
-  uint32_t us = map(deg, 0, 180, 500, 2500);
-  uint32_t duty = (uint32_t)((float)us / 20000.0f * 65535.0f);
-  ledcWrite(SERVO_PIN, duty);
-}
-
-// ---------------------------------------------------------------------------
 //  HEADLIGHT LED  (optional — only does anything when HAS_HEADLIGHT == 1)
 // ---------------------------------------------------------------------------
 void lightBegin() {
@@ -222,12 +207,12 @@ void setLight(bool on) {
 bool cameraBegin() {
   camera_config_t c = {};                      // zero everything first (important!)
   // The camera generates its clock (XCLK) with an LEDC unit. A plain camera
-  // build puts it on channel0/timer0, but that has no other PWM. The
-  // drone adds motor + servo PWM, so we move the camera to the HIGHEST
-  // timer/channel (3 / 7). The motor + servo PWM below use the Arduino LEDC
-  // auto-allocator, which hands out timers/channels from the BOTTOM (0,1,2...).
-  // Keeping the camera up high means the two never collide — which would
-  // otherwise break the video or the motor speed. (XCLK works on any LEDC unit.)
+  // build puts it on channel0/timer0, but that has no other PWM. The drone
+  // adds motor PWM, so we move the camera to the HIGHEST timer/channel (3 / 7).
+  // The motor PWM below uses the Arduino LEDC auto-allocator, which hands out
+  // timers/channels from the BOTTOM (0,1,2...). Keeping the camera up high means
+  // the two never collide — which would otherwise break the video or the motor
+  // speed. (XCLK works on any LEDC unit.)
   c.ledc_channel = LEDC_CHANNEL_7;
   c.ledc_timer   = LEDC_TIMER_3;
   c.pin_d0=Y2_GPIO_NUM; c.pin_d1=Y3_GPIO_NUM; c.pin_d2=Y4_GPIO_NUM; c.pin_d3=Y5_GPIO_NUM;
@@ -418,7 +403,6 @@ void setup() {
   Serial.println("\nReconBot booting...");
 
   motorsBegin();  motorsStop();
-  servoBegin();   setTilt(SERVO_START_DEG);
   lightBegin();
 
 #if USE_IMU

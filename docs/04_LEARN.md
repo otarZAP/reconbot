@@ -56,19 +56,7 @@ to do other things (like stream video).
 
 ---
 
-## 3. How the servo aims the camera
-
-A hobby servo (MG90S) isn't told a speed — it's told an **angle**. It listens
-for a pulse every 20 ms (50 Hz): a **1 ms** pulse means "go to one end," **2 ms**
-means "go to the other end," 1.5 ms means "center." Inside, it has its own little
-control loop that holds that angle against a load.
-
-We make those exact pulses with PWM too: 50 Hz, and we compute the duty so the
-high part lasts 1–2 ms. That's the math in `setTilt()`.
-
----
-
-## 4. How video gets to your phone — MJPEG
+## 3. How video gets to your phone — MJPEG
 
 Video sounds complicated, but ours is simple: the camera takes a **JPEG photo**,
 sends it, takes another, sends it… ~20–30 times a second. Your eye blends them
@@ -82,25 +70,25 @@ not a smooth-but-delayed picture.
 
 ---
 
-## 5. How the controls reach the bot — a tiny web server
+## 4. How the controls reach the bot — a tiny web server
 
 The ESP32 runs a small **web server**. Two jobs, on two ports:
 
 * **Port 80** serves the HUD web page and listens for commands like
-  `/control?cmd=F` (forward) or `/control?tilt=120`.
+  `/control?joy=30,-80` (steer + drive) or `/control?cmd=S` (stop).
 * **Port 81** serves the MJPEG video, so a slow video frame never blocks a
   control command.
 
-When you hold the "▲" button, the page sends `cmd=F`. When you let go, it sends
-`cmd=S` (stop). A slider sends `speed=` or `tilt=`. That's the whole protocol —
-plain text in a URL. You could literally type one into a browser to drive the bot.
+As you move the on-screen joystick, the page sends `joy=x,y` (turn, forward).
+Let go and it sends `cmd=S` (stop). That's the whole protocol — plain text in a
+URL. You could literally type one into a browser to drive the bot.
 
 > No app store, no install: the bot *is* a web server, and the browser already on
 > the iPhone is the client. That's the same idea that runs the whole internet.
 
 ---
 
-## 6. The failsafe — why the bot stops itself
+## 5. The failsafe — why the bot stops itself
 
 What if you walk out of WiFi range, or close the app, while driving? The bot
 would keep going. So the page sends a quiet "ping" every 0.4 s, and the firmware
@@ -113,7 +101,7 @@ remembers the time of the **last message**. In `loop()`, if more than
 
 ---
 
-## 7. Why two separate power supplies?
+## 6. Why two separate power supplies?
 
 Motors are *electrically loud*. When they start, they yank current and make the
 voltage dip and spike. A sensitive brain (ESP32 + camera + WiFi radio) sharing
@@ -125,7 +113,7 @@ So we split power into two **rails**:
 * **TPS63020 → 3.3 V → brain.** It's a **buck-boost** converter: it can step
   voltage *down or up*. Even when the battery sags under motor load, it *boosts*
   back up to a steady 3.3 V. The brain never notices the motors.
-* **MT3608 → 5 V → motors + servo.** All the noisy stuff lives here.
+* **MT3608 → 5 V → motors.** All the noisy stuff lives here.
 
 They only meet at the battery and at **common ground**. Clean brain, happy bot.
 
@@ -135,7 +123,7 @@ They only meet at the battery and at **common ground**. Clean brain, happy bot.
 
 ---
 
-## 8. The whole signal flow, one picture
+## 7. The whole signal flow, one picture
 
 ```
    your thumb            iPhone (Safari)             ESP32-S3-CAM                 the world
@@ -144,10 +132,9 @@ They only meet at the battery and at **common ground**. Clean brain, happy bot.
                                                     │
                                                     ├─► set motor pins + PWM ─►  L298N ─► wheels turn
    camera   ◄──────── <img> shows JPEGs ◄───── MJPEG stream (port 81) ◄── camera takes photos
-   tilt     ─────►  send /control?tilt= ───►   setTilt() ─► 50Hz pulse ─►  MG90S ─► camera aims
                           (every 0.4s: ping ───► resets the failsafe timer)
 ```
 
-That's the entire robot. Six small ideas — H-bridge, PWM, servo pulses, MJPEG, a
-web server, and a watchdog — wired together. Once these click, you can build
-almost any connected robot. 🟢
+That's the entire robot. Five small ideas — H-bridge, PWM, MJPEG, a web server,
+and a watchdog — wired together. Once these click, you can build almost any
+connected robot. 🟢

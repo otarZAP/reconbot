@@ -5,7 +5,7 @@ OFF**. Work slowly and check each connection against the tables before you
 apply power.
 
 > **Camera pins + flash settings are confirmed** from the FORIOT
-> ESP32-S3-CAM's silkscreen pinout — no guessing there. The **motor/servo GPIOs**
+> ESP32-S3-CAM's silkscreen pinout — no guessing there. The **motor GPIOs**
 > below are a sound default chosen to dodge the camera, flash/PSRAM, USB,
 > serial, and boot pins. If one isn't broken out on a header pad on your board,
 > pick another free pin (good spares: 21, 48, 1, 2) and change it in
@@ -29,13 +29,12 @@ cell sags under motor load, the brain still gets a steady 3.3 V.
   [18650 -]──► TP4056 OUT- ───────────────┤    TPS63020 IN- ──► OUT GND  ──► ESP32-S3-CAM  GND
                                           │
                                           ├──► MT3608 IN+ ──► OUT 5V ──┬──► L298N  +12V (VS)
-                                          │    MT3608 IN- ──► OUT GND  ├──► L298N  +5V  (logic, jumper OFF)
-                                          │                           └──► MG90S  V+ (red)
+                                          │    MT3608 IN- ──► OUT GND  └──► L298N  +5V  (logic, jumper OFF)
                                           │
                                           └────────────────── COMMON GROUND ──────────────────┐
                                                                                                │
    ALL grounds tie together:  18650- / TP4056 OUT- / TPS63020 GND / MT3608 GND /              │
-   L298N GND / ESP32 GND / MG90S brown ──────────────────────────────────────────────────────┘
+   L298N GND / ESP32 GND ──────────────────────────────────────────────────────────────────────┘
 ```
 
 **Set the converter voltages with a multimeter BEFORE connecting any board:**
@@ -92,20 +91,7 @@ in `config.h`. No re-soldering needed.
 
 ---
 
-## 3. ESP32-S3-CAM → MG90S servo (camera tilt)
-
-| Servo wire | → connects to |
-|---|---|
-| **Orange** (signal) | ESP32 GPIO **21** |
-| **Red** (V+) | 5 V rail (MT3608 out) |
-| **Brown** (GND) | common ground |
-
-> Don't power the servo from the ESP32's 3.3 V — it needs ~5 V to have any
-> torque, and its current spikes would disturb the brain. Use the 5 V rail.
-
----
-
-## 4. (Optional, later) MPU-6050 IMU
+## 3. (Optional, later) MPU-6050 IMU
 
 Skip this for the first build. When you want a live tilt/heading read-out on the
 HUD, set `USE_IMU 1` in `config.h` and wire:
@@ -121,13 +107,13 @@ HUD, set `USE_IMU 1` in `config.h` and wire:
 
 ---
 
-## 5. Pre-power checklist
+## 4. Pre-power checklist
 
 Before the very first switch-on:
 
 - [ ] **+ and −** correct at every module (look twice).
 - [ ] TPS63020 output reads **3.3 V**, MT3608 output reads **5.0 V** (measured, loaded later).
-- [ ] **All grounds connected together** (brain, motors, servo, converters, battery).
+- [ ] **All grounds connected together** (brain, motors, converters, battery).
 - [ ] ENA/ENB jumpers **removed**; L298N +5V regulator jumper **removed**.
 - [ ] microSD slot **empty**.
 - [ ] Wheels **off the ground**.
@@ -150,8 +136,7 @@ ESP32-S3-CAM
  ├─ G40 ──► L298N ENA   (L speed/PWM)
  ├─ G39 ──► L298N IN3   (R dir)
  ├─ G38 ──► L298N IN4   (R dir)
- ├─ G47 ──► L298N ENB   (R speed/PWM)
- └─ G21 ──► MG90S signal (orange)
+ └─ G47 ──► L298N ENB   (R speed/PWM)
 
 L298N
  ├─ +12V (VS) ◄── 5V rail (MT3608)
@@ -159,8 +144,6 @@ L298N
  ├─ GND       ──  common ground
  ├─ OUT1/OUT2 ──► Left motor
  └─ OUT3/OUT4 ──► Right motor
-
-MG90S:  orange→G21 · red→5V · brown→GND
 ```
 
 Next: assemble it all in [01_BUILD_GUIDE.md](01_BUILD_GUIDE.md).
