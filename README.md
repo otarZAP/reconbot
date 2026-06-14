@@ -1,7 +1,7 @@
 # 🛰️ ReconBot — a tactical two-wheeled recon drone
 
-A small, sleek two-wheeled recon drone you and your son build together. A single
-**ESP32-S3-CAM** streams live video to an **iPhone web app** and drives two
+A small, sleek two-wheeled recon drone you and your kids can build together. A single
+**ESP32-S3-CAM** streams live video to a web app and drives two
 wheels through an **L298N** motor driver — a fixed forward-facing camera giving
 you a live first-person view as you drive.
 
